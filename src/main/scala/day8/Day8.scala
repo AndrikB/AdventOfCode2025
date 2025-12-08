@@ -10,6 +10,13 @@ object Day8 extends App {
     .map(_.split(","))
     .map(arr => (arr(0).toInt, arr(1).toInt, arr(2).toInt))
 
+  private val queue = new mutable.PriorityQueue[(Double, (Int, Int))]()((a, b) => b._1.compareTo(a._1))
+  for (i <- input.indices) {
+    for (j <- i + 1 until input.size) {
+      queue.enqueue((length(i, j), (i, j)))
+    }
+  }
+
   part1()
   println("--------------------")
   part2()
@@ -21,32 +28,13 @@ object Day8 extends App {
   )
 
   private def part1(): Unit = {
-    val queue = LimitedSizePriorityQueue[(Double, (Int, Int))](1000)((a, b) => a._1.compareTo(b._1))
-    for (i <- input.indices) {
-      for (j <- i + 1 until input.size) {
-        queue.enqueue((length(i, j), (i, j)))
-      }
-    }
-
-//    println(queue)
-
     val circles = mutable.HashMap[Int, Set[Int]]()
     input.indices.foreach(i => circles.put(i, Set(i)))
 
-    queue.toSeq.foreach {
-      case (size, (from, to)) =>
-        val fromCircle = circles(from)
-        val toCircle = circles(to)
-        val joined = fromCircle ++ toCircle
-        joined.foreach(
-          circles(_) = joined
-        )
+    queue.clone().dequeueAll.take(1000).foreach { case (size, (from, to)) =>
+      val joined = circles(from) ++ circles(to)
+      joined.foreach(circles(_) = joined)
     }
-
-//    println(queue)
-
-//    println(circles)
-//    println(circles.values.toSet.toSeq.map(_.size))
 
     val topCircuitsSize = circles.values.toSet.toSeq.map(_.size).sorted.reverse.take(3)
 
@@ -55,15 +43,6 @@ object Day8 extends App {
   }
 
   private def part2(): Unit = {
-    val queue = new mutable.PriorityQueue[(Double, (Int, Int))]()((a, b) => b._1.compareTo(a._1))
-    for (i <- input.indices) {
-      for (j <- i + 1 until input.size) {
-        queue.enqueue((length(i, j), (i, j)))
-      }
-    }
-
-//    println(queue)
-
     val circles = mutable.HashMap[Int, Set[Int]]()
     input.indices.foreach(i => circles.put(i, Set(i)))
 
@@ -83,39 +62,7 @@ object Day8 extends App {
     }
 
     println(last)
-
     println(input(last._1)._1 * input(last._2)._1)
   }
 
-
 }
-
-class LimitedSizePriorityQueue[A](maxSize: Int)(implicit ord: Ordering[A]) {
-  require(maxSize > 0, "Max size must be positive")
-
-  private val underlyingQueue = new mutable.PriorityQueue[A]()
-
-  def enqueue(elem: A): Unit = {
-    if (underlyingQueue.size < maxSize) {
-      underlyingQueue.enqueue(elem)
-    } else {
-      if (ord.compare(elem, underlyingQueue.head) < 0) { // If elem is larger than the current largest (tail)
-        underlyingQueue.dequeue() // Remove the largest
-        underlyingQueue.enqueue(elem) // Add the smaller one
-      }
-    }
-  }
-
-  def toSeq: Seq[A] = underlyingQueue.toSeq
-
-  def dequeue(): A = underlyingQueue.dequeue()
-
-  def head: A = underlyingQueue.head
-
-  def isEmpty: Boolean = underlyingQueue.isEmpty
-
-  def size: Int = underlyingQueue.size
-
-  override def toString: String = underlyingQueue.toString
-}
-
